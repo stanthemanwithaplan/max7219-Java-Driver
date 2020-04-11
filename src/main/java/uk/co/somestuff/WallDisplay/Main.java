@@ -32,7 +32,7 @@ public class Main {
         matrix.clear();
         matrix.brightness(0x0F);
         matrix.orientation(90);
-        matrix.setLeft("|", LCD_FONT, 1, 1);
+        matrix.setLeftMargin("|", LCD_FONT, 1, 1);
         matrix.scrollUp("Hello", LCD_FONT, matrix.getPadding("Hello", LCD_FONT));
         matrix.carrouselText("Hello", LCD_FONT, 40);
         matrix.text("Hello", LCD_FONT, matrix.getPadding("Hello", LCD_FONT));
