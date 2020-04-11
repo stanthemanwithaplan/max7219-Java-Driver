@@ -44,5 +44,6 @@ Getting padding so that the text is centered
 matrix.getPadding(String msg, short[][] font)
 matrix.getPadding("Hello", LCD_FONT);
 ```
-
+<br />
+<br />
 @yancheng https://github.com/sharetop/max7219-java for the base SPI interface
