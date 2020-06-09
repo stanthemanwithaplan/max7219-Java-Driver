@@ -69,7 +69,7 @@ public class Matrix {
         this.EXTRA_LEFT_BUFFER = null;
     }
 
-    public void setLeftMargin(String msg, short[][] font, int fromLeft, int fromRight, boolean isFlash) {
+    public void setLeftMargin(String msg, short[][] font, int fromLeft, int fromRight, boolean isFlush) {
 
         byte[] chars = new byte[MATRIX_BLOCK_HW * msg.length()];
 
@@ -110,7 +110,7 @@ public class Matrix {
             this.EXTRA_LEFT_BUFFER[i] = 0;
         }
 
-        if (isFlash) {
+        if (isFlush) {
             this.MATRIX_BUFFER = new byte[MATRIX_BLOCK_HW * this.MATRIX_WIDTH];
             combineLeftMargin();
             this.flush();
