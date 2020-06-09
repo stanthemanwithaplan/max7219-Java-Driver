@@ -44,6 +44,8 @@ public class Matrix {
         public static byte MAX7219_REG_DISPLAYTEST = 0xF;
     }
 
+    public boolean isDisplaying = false;
+
     public Matrix(int MATRIX_WIDTH) {
 
         this.MATRIX_WIDTH = MATRIX_WIDTH;
@@ -67,7 +69,7 @@ public class Matrix {
         this.EXTRA_LEFT_BUFFER = null;
     }
 
-    public void setLeftMargin(String msg, short[][] font, int fromLeft, int fromRight) {
+    public void setLeftMargin(String msg, short[][] font, int fromLeft, int fromRight, boolean isFlash) {
 
         byte[] chars = new byte[MATRIX_BLOCK_HW * msg.length()];
 
@@ -107,6 +109,12 @@ public class Matrix {
         for (int u; i < fromRight; i++) {
             this.EXTRA_LEFT_BUFFER[i] = 0;
         }
+
+        if (isFlash) {
+            this.MATRIX_BUFFER = new byte[MATRIX_BLOCK_HW * this.MATRIX_WIDTH];
+            combineLeftMargin();
+            this.flush();
+        }
     }
 
     private void combineLeftMargin() {
@@ -138,6 +146,8 @@ public class Matrix {
 
     public void text(String msg, short[][] font, int fromLeft) {
 
+        isDisplaying = true;
+
         byte[] chars = new byte[MATRIX_BLOCK_HW * this.MATRIX_WIDTH];
 
         int constant = 0;
@@ -167,9 +177,12 @@ public class Matrix {
 
         combineLeftMargin();
         this.flush();
+        isDisplaying = false;
     }
 
     public void scrollUp(String msg, short[][] font, int fromLeft, int delay) {
+
+        isDisplaying = true;
 
         /** We set the length of the the array 'orgChars' so that it can be the size of the matrix display or the full
          * message, which ever is bigger **/
@@ -235,6 +248,8 @@ public class Matrix {
     }
 
     public void carrouselText(String msg, short[][] font, int delay) {
+
+        isDisplaying = true;
 
         /** We set the length of the the array 'orgWhatsLeft' so that it can be the size of the matrix display or the full
          * message, which ever is bigger. We use this as a bigger then needed array as we don't know the actual width yet **/
@@ -307,6 +322,7 @@ public class Matrix {
             combineLeftMargin();
             this.flush();
         }
+        isDisplaying = false;
     }
 
     public int getPadding(String msg, short[][] font) {
@@ -432,6 +448,7 @@ public class Matrix {
         }catch(Exception ex){
             ex.printStackTrace();
         }
+        isDisplaying = false;
     }
 
     private void _setbyte(int deviceId,short position,byte value){
