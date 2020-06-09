@@ -18,8 +18,8 @@ matrix.orientation(90); /** Most bought displays come in at a 90 angle **/
 ```
 Setting a constant left item
 ```
-matrix.setLeftMargin(String msg, short[][] font, int fromLeft, int fromRight)
-matrix.setLeftMargin("14:03", LCD_FONT, 1, 1);
+matrix.setLeftMargin(String msg, short[][] font, int fromLeft, int fromRight, boolean isFlush)
+matrix.setLeftMargin("14:03", LCD_FONT, 1, 1, true);
 ```
 Scroll text up
 ```
