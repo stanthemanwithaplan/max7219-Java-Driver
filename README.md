@@ -1,4 +1,4 @@
-# Matrix Driver (max7219) Java
+# max7219 java driver
 Mainly for use with a raspberry pi
 
 The library is currently capable of:
