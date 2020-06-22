@@ -23,7 +23,8 @@ public class Matrix {
 
     protected int orientation = 0;
     protected byte[] MATRIX_BUFFER;
-    protected byte[] EXTRA_LEFT_BUFFER = null;
+    protected byte[] EXTRA_MATRIX_BUFFER;
+    protected byte[] EXTRA_LEFT_BUFFER = {};
 
     protected SpiDevice spi;
 
@@ -44,13 +45,12 @@ public class Matrix {
         public static byte MAX7219_REG_DISPLAYTEST = 0xF;
     }
 
-    public boolean isDisplaying = false;
-
     public Matrix(int MATRIX_WIDTH) {
 
         this.MATRIX_WIDTH = MATRIX_WIDTH;
         /** Once the 'MATRIX_WIDTH' is known a new byte array is created with that length **/
         this.MATRIX_BUFFER = new byte[MATRIX_BLOCK_HW * this.MATRIX_WIDTH];
+        this.EXTRA_MATRIX_BUFFER = new byte[MATRIX_BLOCK_HW * this.MATRIX_WIDTH];
 
         try {
             this.spi = SpiFactory.getInstance(SpiChannel.CS0, SpiDevice.DEFAULT_SPI_SPEED,SpiDevice.DEFAULT_SPI_MODE);
@@ -65,11 +65,27 @@ public class Matrix {
         }
     }
 
+    private Thread matrixUpdater = new Thread() {
+        public void run() {
+            while (true) {
+                //System.out.println("[co.uk.somestuff.WallDisplay.Matrix] Updating display");
+                Matrix.this.flush();
+                try {
+                    sleep(16);
+                } catch (InterruptedException e) {
+                    e.printStackTrace();
+                }
+            }
+        }
+    };
+
     public void emptyLeftMargin() {
-        this.EXTRA_LEFT_BUFFER = null;
+        this.EXTRA_LEFT_BUFFER = new byte[]{};
     }
 
-    public void setLeftMargin(String msg, short[][] font, int fromLeft, int fromRight, boolean isFlush) {
+    public void setLeftMargin(String msg, short[][] font, int fromLeft, int fromRight) {
+
+        this.EXTRA_LEFT_BUFFER = new byte[]{};
 
         byte[] chars = new byte[MATRIX_BLOCK_HW * msg.length()];
 
@@ -110,25 +126,21 @@ public class Matrix {
             this.EXTRA_LEFT_BUFFER[i] = 0;
         }
 
-        if (isFlush) {
-            this.MATRIX_BUFFER = new byte[MATRIX_BLOCK_HW * this.MATRIX_WIDTH];
-            combineLeftMargin();
-            this.flush();
-        }
+        this.combineLeftMargin();
     }
 
     private void combineLeftMargin() {
 
-        if (this.EXTRA_LEFT_BUFFER != null) {
+        if (this.EXTRA_LEFT_BUFFER != null || this.EXTRA_LEFT_BUFFER.length > 0) {
             /** So we know the length of the Extra Buffer is less than the total width and that the matrix buffer is the
              * width of the display.
              **/
 
             /** Saves the existing matrix buffer to a new variable, it's a for loop because if you just do = it fucks up **/
-            byte[] standingMatrixBuffer = new byte[this.MATRIX_BUFFER.length];
+            /*byte[] standingMatrixBuffer = new byte[this.MATRIX_BUFFER.length];
             for (int i = 0; i < standingMatrixBuffer.length; i++) {
                 standingMatrixBuffer[i] = this.MATRIX_BUFFER[i];
-            }
+            }*/
 
             int i = 0;
             /** First we add the extra on the left to the matrix buffer as we know it is less than the total width of
@@ -139,14 +151,12 @@ public class Matrix {
 
             /** Then add on the original message, or whats left that's visible onto the buffer **/
             for (int u; i < this.MATRIX_BUFFER.length; i++) {
-                this.MATRIX_BUFFER[i] = standingMatrixBuffer[i-this.EXTRA_LEFT_BUFFER.length];
+                this.MATRIX_BUFFER[i] = this.EXTRA_MATRIX_BUFFER[i-this.EXTRA_LEFT_BUFFER.length];
             }
         }
     }
 
     public void text(String msg, short[][] font, int fromLeft) {
-
-        isDisplaying = true;
 
         byte[] chars = new byte[MATRIX_BLOCK_HW * this.MATRIX_WIDTH];
 
@@ -168,21 +178,18 @@ public class Matrix {
         int i = 0;
 
         for (int u; i < fromLeft; i++) {
-            this.MATRIX_BUFFER[i] = 0;
+            this.EXTRA_MATRIX_BUFFER[i] = 0;
         }
         while (i < MATRIX_BLOCK_HW * this.MATRIX_WIDTH) {
-            this.MATRIX_BUFFER[i] = chars[i-fromLeft];
+            this.EXTRA_MATRIX_BUFFER[i] = chars[i-fromLeft];
             i++;
         }
 
-        combineLeftMargin();
-        this.flush();
-        isDisplaying = false;
+        this.combineLeftMargin();
+        this.EXTRA_MATRIX_BUFFER = new byte[MATRIX_BLOCK_HW * this.MATRIX_WIDTH];
     }
 
     public void scrollUp(String msg, short[][] font, int fromLeft, int delay) {
-
-        isDisplaying = true;
 
         /** We set the length of the the array 'orgChars' so that it can be the size of the matrix display or the full
          * message, which ever is bigger **/
@@ -239,17 +246,14 @@ public class Matrix {
                     letterBuilder.setCharAt(i-u, newChars[y].charAt(7-u));
                 }
                 /** Assigns the 'y' value of the 'MATRIX_BUFFER' to the new binary **/
-                this.MATRIX_BUFFER[y] = (byte) Integer.parseInt(letterBuilder.toString(), 2);
+                this.EXTRA_MATRIX_BUFFER[y] = (byte) Integer.parseInt(letterBuilder.toString(), 2);
             }
 
-            combineLeftMargin();
-            this.flush();
+            this.combineLeftMargin();
         }
     }
 
     public void carrouselText(String msg, short[][] font, int delay) {
-
-        isDisplaying = true;
 
         /** We set the length of the the array 'orgWhatsLeft' so that it can be the size of the matrix display or the full
          * message, which ever is bigger. We use this as a bigger then needed array as we don't know the actual width yet **/
@@ -313,16 +317,15 @@ public class Matrix {
             /** For the length of the display ether update the buffer with the new available message or set it to empty space **/
             for (int u = 0; u < MATRIX_BLOCK_HW * this.MATRIX_WIDTH; u++) {
                 if (whatsLeft.length <= u) {
-                    this.MATRIX_BUFFER[u] = 0;
+                    this.EXTRA_MATRIX_BUFFER[u] = 0;
                 } else {
-                    this.MATRIX_BUFFER[u] = whatsLeft[u];
+                    this.EXTRA_MATRIX_BUFFER[u] = whatsLeft[u];
                 }
             }
 
-            combineLeftMargin();
-            this.flush();
+            this.combineLeftMargin();
         }
-        isDisplaying = false;
+        this.EXTRA_MATRIX_BUFFER = new byte[MATRIX_BLOCK_HW * this.MATRIX_WIDTH];
     }
 
     public int getPadding(String msg, short[][] font) {
@@ -351,7 +354,7 @@ public class Matrix {
                 buf = this._rotate(buf);
             }
 
-            for(short pos = 0; pos < MATRIX_BLOCK_HW; pos++){
+            for (short pos = 0; pos < MATRIX_BLOCK_HW; pos++) {
                 this._write(this._values(pos, buf));
             }
 
@@ -360,7 +363,7 @@ public class Matrix {
         }
     }
 
-    private void _write(byte[] buf) throws Exception{
+    private void _write(byte[] buf) throws Exception {
         this.spi.write(buf);
     }
 
@@ -369,7 +372,7 @@ public class Matrix {
         int len = 2 * this.MATRIX_WIDTH;
         byte [] buf = new byte [len];
 
-        for(int i = 0;i < len; i += 2){
+        for (int i = 0;i < len; i += 2) {
             buf[i] = register;
             buf[i+1] = data;
         }
@@ -377,52 +380,53 @@ public class Matrix {
         this._write(buf);
     }
 
-    private byte[] _rotate(byte[] buf){
+    private byte[] _rotate(byte[] buf) {
         byte[] result = new byte[this.MATRIX_BUFFER.length];
-        for(int i=0;i<this.MATRIX_WIDTH*MATRIX_BLOCK_HW;i+=MATRIX_BLOCK_HW){
+        for (int i=0;i<this.MATRIX_WIDTH*MATRIX_BLOCK_HW;i+=MATRIX_BLOCK_HW) {
             byte[] tile = new byte[MATRIX_BLOCK_HW];
-            for(int j=0;j<MATRIX_BLOCK_HW;j++){
+            for (int j=0;j<MATRIX_BLOCK_HW;j++) {
                 tile[j]=buf[i+j];
             }
             int k = this.orientation/90;
-            for(int j=0;j<k;j++){
+            for (int j=0;j<k;j++) {
                 tile = this._rotate_8_8(tile);
             }
-            for(int j=0;j<MATRIX_BLOCK_HW;j++){
+            for (int j=0;j<MATRIX_BLOCK_HW;j++) {
                 result[i+j]=tile[j];
             }
 
         }
-
         return result;
     }
 
     public void close(){
-        try{
+        try {
             this.clear();
+            if (this.matrixUpdater.isAlive()) {
+                this.matrixUpdater.interrupt();
+            }
             this.command(Constants.MAX7219_REG_SHUTDOWN, (byte)0x0);
-        }
-        catch(Exception ex){
+        } catch(Exception ex){
             ex.printStackTrace();
         }
     }
 
     public void open(){
-        try{
+        this.matrixUpdater.start();
+        try {
             this.command(Constants.MAX7219_REG_SHUTDOWN, (byte)0x1);
             this.clear();
-        }
-        catch(Exception ex){
+        } catch(Exception ex){
             ex.printStackTrace();
         }
     }
 
-    private byte[] _rotate_8_8(byte[] buf){
+    private byte[] _rotate_8_8(byte[] buf) {
         byte[] result = new byte[8];
         for (int i = 0; i <8; i ++) {// Index of output result
             short b = 0;
             short t = (short) ((0x01 << i) & 0xff); // According to the index, calculate which bit of the source to take
-            for(int j=0;j<8;j++){
+            for (int j=0;j<8;j++) {
                 int d = 7-i-j; // Calculate the number of shifts, which is related to i and may be negative
                 if(d>0)
                     b +=(short)((buf[j]&t)<<d);
@@ -437,26 +441,25 @@ public class Matrix {
 
     public void clear(){
 
-        try{
-            for(int i=0;i<this.MATRIX_WIDTH;i++){
-                for(short j=0;j<MATRIX_BLOCK_HW;j++){
+        try {
+            for (int i=0;i<this.MATRIX_WIDTH;i++) {
+                for (short j=0;j<MATRIX_BLOCK_HW;j++) {
                     this._setbyte(i, (short)(j+ Constants.MAX7219_REG_DIGIT0), (byte)0x00);
                 }
             }
             this.flush();
 
-        }catch(Exception ex){
+        } catch(Exception ex) {
             ex.printStackTrace();
         }
-        isDisplaying = false;
     }
 
-    private void _setbyte(int deviceId,short position,byte value){
+    private void _setbyte(int deviceId,short position,byte value) {
         int offset = deviceId*MATRIX_BLOCK_HW+position- Constants.MAX7219_REG_DIGIT0;
         this.MATRIX_BUFFER[offset]=value;
     }
 
-    public void orientation(int angle){
+    public void orientation(int angle) {
         if(angle!=0 && angle!=90 && angle!=180 && angle!=270) return;
 
         this.orientation = angle;
