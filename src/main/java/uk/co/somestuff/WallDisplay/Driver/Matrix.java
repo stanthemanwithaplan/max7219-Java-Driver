@@ -69,6 +69,7 @@ public class Matrix {
         public void run() {
             while (true) {
                 //System.out.println("[co.uk.somestuff.WallDisplay.Matrix] Updating display");
+                Matrix.this.combineLeftMargin();
                 Matrix.this.flush();
                 try {
                     sleep(16);
@@ -125,8 +126,6 @@ public class Matrix {
         for (int u; i < fromRight; i++) {
             this.EXTRA_LEFT_BUFFER[i] = 0;
         }
-
-        this.combineLeftMargin();
     }
 
     private void combineLeftMargin() {
@@ -184,8 +183,6 @@ public class Matrix {
             this.EXTRA_MATRIX_BUFFER[i] = chars[i-fromLeft];
             i++;
         }
-
-        this.combineLeftMargin();
         this.EXTRA_MATRIX_BUFFER = new byte[MATRIX_BLOCK_HW * this.MATRIX_WIDTH];
     }
 
@@ -248,8 +245,6 @@ public class Matrix {
                 /** Assigns the 'y' value of the 'MATRIX_BUFFER' to the new binary **/
                 this.EXTRA_MATRIX_BUFFER[y] = (byte) Integer.parseInt(letterBuilder.toString(), 2);
             }
-
-            this.combineLeftMargin();
         }
     }
 
@@ -322,8 +317,6 @@ public class Matrix {
                     this.EXTRA_MATRIX_BUFFER[u] = whatsLeft[u];
                 }
             }
-
-            this.combineLeftMargin();
         }
         this.EXTRA_MATRIX_BUFFER = new byte[MATRIX_BLOCK_HW * this.MATRIX_WIDTH];
     }
