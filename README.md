@@ -16,6 +16,11 @@ matrix.open();
 matrix.brightness(0x0F); /** 0x0F is hex for 15, the maximum brightness **/
 matrix.orientation(90); /** Most bought displays come in at a 90 angle **/
 ```
+Closing & Clearing
+```
+matrix.close();
+matrix.clear();
+```
 Setting a constant left item
 ```
 matrix.setLeftMargin(String msg, short[][] font, int fromLeft, int fromRight, boolean isFlush)
