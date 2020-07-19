@@ -1,4 +1,4 @@
-# max7219 java driver
+# max7219 Java Driver
 Mainly for use with a raspberry pi
 
 The library is currently capable of:
